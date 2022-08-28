@@ -34,14 +34,14 @@
             "-d"                        ; default to desktop
             "-Od"                       ; disable optimization
             "-I."                       ; add directory to include path
-            "-o" "/dev/null" ; once you specify a client, it emits a binary
-            ;; "--stdin"                   ; must be before -S
-            (option "--client" flycheck-glsl-client)
-            ;; "-S" (eval (flycheck-glsl-stage (buffer-file-name)))
-            source
+            ;; "-o" "/dev/null" ; once you specify a client, it emits a binary
+            "--stdin"                   ; must be before -S
+            ;; (option "--client" flycheck-glsl-client)
+            "-S" (eval (flycheck-glsl-stage (buffer-file-name)))
+            ;; source
             )
   :error-patterns
-  ((error line-start "ERROR: " (optional (file-name) ":" line ": ") (message) line-end)
+  ((error line-start "ERROR: " column ":" line ": " (message) line-end)
    (warning line-start "WARNING: " column ":" line ":" (message) line-end)
    (info line-start
          "NOTE: "
@@ -51,16 +51,19 @@
          line-end))
   :error-filter
   (lambda (errors)
-    ;; some errors such as lack of entry point don't have a line
-    ;; number; this makes it so those errors aren't filtered out
-    (flycheck-fill-empty-line-numbers
-     ;; some of these no-line-number errors aren't useful:
-     (seq-filter (lambda (err)
-                   (let ((m (flycheck-error-message err)))
-                     (and (null (string-match "No code generated." m))
-                          (null (string-match "compilation terminated" m))))) errors)))
+    ;; A zero-based column causes flycheck to put errors on the previous line,
+    ;; so correct that by incerementing the error column automatically.
+    (flycheck-increment-error-columns
+     ;; some errors such as lack of entry point don't have a line
+     ;; number; this makes it so those errors aren't filtered out
+     (flycheck-fill-empty-line-numbers
+      ;; some of these no-line-number errors aren't useful:
+      (seq-filter (lambda (err)
+                    (let ((m (flycheck-error-message err)))
+                      (and (null (string-match "No code generated." m))
+                           (null (string-match "compilation terminated" m))))) errors))))
   :modes (glsl-mode)
-  :standard-input nil)
+  :standard-input t)
 
 ;;;###autoload
 (defun flycheck-glsl-setup ()
