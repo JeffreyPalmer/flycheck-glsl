@@ -37,6 +37,7 @@
             ;; "-o" "/dev/null" ; once you specify a client, it emits a binary
             "--stdin"                   ; must be before -S
             ;; (option "--client" flycheck-glsl-client)
+            "-l"                        ; simulate linking to avoid #include errors
             "-S" (eval (flycheck-glsl-stage (buffer-file-name)))
             ;; source
             )
